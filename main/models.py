@@ -9,7 +9,7 @@ class TimestampableModel(models.Model):
         abstract = True
 
 class BaseIcon(TimestampableModel):
-    file = models.FileField(upload_to='icons')
+    file = models.FileField(upload_to='media/icons')
     class Meta:
         abstract = True
         
