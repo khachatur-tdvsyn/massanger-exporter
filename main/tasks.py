@@ -1,16 +1,11 @@
 from celery import shared_task
 
-
-@shared_task
-def add(x, y):
-    return x + y
+from service.whatsapp import WhatsappSession
+from django.conf import settings
 
 
 @shared_task
-def mul(x, y):
-    return x * y
-
-
-@shared_task
-def xsum(numbers):
-    return sum(numbers)
+def login_whatsapp(phone_number):
+    with WhatsappSession(None, settings.PROFILES_PATH, phone_number) as session:
+        result = session.login()
+        return result

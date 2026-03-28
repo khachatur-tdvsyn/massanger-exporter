@@ -42,3 +42,19 @@ class AttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attachment
         fields = '__all__'
+
+
+class MessangerLoginSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+
+class MessangerLogoutSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+
+class TaskStatusSerializer(serializers.Serializer):
+    task_id = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    result = serializers.JSONField(read_only=True, required=False)

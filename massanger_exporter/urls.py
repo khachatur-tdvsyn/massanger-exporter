@@ -28,6 +28,12 @@ from main.viewsets import (
     UserIconViewSet,
     ReactionViewSet,
     AttachmentViewSet,
+    WhatsappSessionViewSet
+)
+
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView
 )
 
 router = routers.DefaultRouter()
@@ -39,13 +45,16 @@ avaiable_viewsets = {
     r'user-icons': UserIconViewSet,
     r'reactions': ReactionViewSet,
     r'attachments': AttachmentViewSet,
+    r'wapp-session': WhatsappSessionViewSet,
 }
 
 for v in avaiable_viewsets:
-    router.register(v, avaiable_viewsets[v])
+    router.register(v, avaiable_viewsets[v], basename=v)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/", include(router.urls)),
+    path("api/schema/", SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ]
