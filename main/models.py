@@ -1,9 +1,17 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class TimestampableModel(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+class AssignableModel(TimestampableModel):
+    # Temporary set null for successful migration
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -26,14 +34,14 @@ class User(TimestampableModel):
     messanger_type = models.CharField(max_length=8, choices=MessangerType)
     settings = models.JSONField(default=dict)
 
-class Chat(TimestampableModel):
+class Chat(AssignableModel):
     messanger_type = models.CharField(max_length=8, choices=MessangerType)
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     creator = models.ForeignKey(User, related_name="chats", on_delete=models.CASCADE, null=True, blank=True)
     admin_users = models.ManyToManyField(User, related_name="admin_users", null=True, blank=True)
 
-class Message(TimestampableModel):
+class Message(AssignableModel):
     chat = models.ForeignKey(Chat, related_name="messages", on_delete=models.CASCADE)
     author = models.ForeignKey(User, null=True, related_name="messages", on_delete=models.SET_NULL)
     text = models.TextField(null=True, blank=True)
@@ -44,7 +52,7 @@ class Message(TimestampableModel):
         related_name='replies'
     )
 
-class Reaction(TimestampableModel):
+class Reaction(AssignableModel):
     symbol = models.CharField(max_length=2)
     user = models.ForeignKey(User, related_name='reactions', on_delete=models.CASCADE)
     message = models.ForeignKey(Message, related_name='reactions', on_delete=models.CASCADE)
@@ -56,7 +64,7 @@ class FileType(models.IntegerChoices):
     TEXT = (3, 'Text')
     AUDIO = (4, 'Audio')
 
-class Attachment(TimestampableModel):
+class Attachment(AssignableModel):
     message = models.ForeignKey(Message, null=True, related_name='attachments', on_delete=models.SET_NULL)
     file = models.FileField(upload_to='attachments')
     name = models.CharField(max_length=255)
