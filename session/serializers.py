@@ -62,3 +62,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
  
+
+class MessangerLoginSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(required=True)
+    session_id = serializers.UUIDField(required=True)
+
+class TaskStatusSerializer(serializers.Serializer):
+    task_id = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    result = serializers.JSONField(read_only=True, required=False)

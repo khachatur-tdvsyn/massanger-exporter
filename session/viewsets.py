@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.contrib.auth.models import User
+from celery.result import AsyncResult
 
 from .models import UserSession
 from .serializers import (
@@ -10,9 +11,12 @@ from .serializers import (
 
     UserSerializer,
     UserCreateSerializer,
-    UserDetailSerializer
+    UserDetailSerializer,
+
+    MessangerLoginSerializer,
+    TaskStatusSerializer
 )
-from .tasks import (open_session, close_session)
+from .tasks import (open_session, close_session, start_login, get_chats_list)
 
 from .selenium_manager import ThreadSafeSeleniumManager
 from hashlib import md5
@@ -23,7 +27,7 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_serializer_class(self):
         """Use different serializers for different actions"""
-        if self.action == 'create':
+        if self.action in 'create':
             return UserCreateSerializer
         elif self.action == 'retrieve':
             return UserDetailSerializer
@@ -113,6 +117,12 @@ class UserSessionViewSet(viewsets.ModelViewSet):
             return UserSession.objects.all()
         return UserSession.objects.filter(created_by=self.request.user)
     
+    def get_serializer_class(self, *args, **kwargs):
+        if self.action in ('login', 'get_chats'):
+            return MessangerLoginSerializer
+        
+        return UserSessionSerializer
+
     @classmethod
     def _generate_user_id(cls, user: User):
         return md5(
@@ -176,3 +186,50 @@ class UserSessionViewSet(viewsets.ModelViewSet):
             {'error': 'Invalid request'},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    @action(detail=False, methods=["post"])
+    def login(self, request):
+        serializer = MessangerLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task = start_login.delay(
+            session_id=serializer.validated_data['session_id'],
+            phone_number=serializer.validated_data["phone_number"]
+        )
+
+        return Response(
+            {"task_id": task.id, "status": "queued"},
+            status=status.HTTP_202_ACCEPTED,
+        )
+    
+    @action(detail=False, methods=["post"])
+    def get_chats(self, request):
+        serializer = MessangerLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task = get_chats_list.delay(
+            session_id=serializer.validated_data['session_id']
+        )
+
+        return Response(
+            {"task_id": task.id, "status": "queued"},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+    @action(detail=False, methods=["get"], url_path="task-status/(?P<task_id>[^/.]+)")
+    def task_status(self, request, task_id=None):
+        result = AsyncResult(task_id)  # pk captures the task_id from the URL
+
+        payload = {
+            "task_id": task_id,
+            "status": result.status,
+        }
+
+        if result.successful():
+            payload["result"] = result.result
+        elif result.failed():
+            payload["result"] = {"error": str(result.result)}
+
+        serializer = TaskStatusSerializer(payload)
+        return Response(serializer.data)
+

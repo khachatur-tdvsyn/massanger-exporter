@@ -63,11 +63,6 @@ class ThreadSafeSeleniumManager:
                 raise ValueError(f"Session {session_id} not found")
             
             session = instance._sessions[session_id]
-            
-            if not session.is_open:
-                logger.error(f"Session {session_id} is not open")
-                raise ValueError(f"Session {session_id} is not open")
-            
             return session
     
     @classmethod

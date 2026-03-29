@@ -10,7 +10,6 @@ from .viewsets import (
     UserIconViewSet,
     ReactionViewSet,
     AttachmentViewSet,
-    WhatsappSessionViewSet
 )
 
 router = routers.DefaultRouter()
@@ -22,7 +21,6 @@ avaiable_viewsets = {
     r'user-icons': UserIconViewSet,
     r'reactions': ReactionViewSet,
     r'attachments': AttachmentViewSet,
-    r'wapp-session': WhatsappSessionViewSet,
 }
 
 for v in avaiable_viewsets:
