@@ -9,7 +9,7 @@ from celery.result import AsyncResult
 from django.contrib.auth import get_user_model
 
 from .models import User, Chat, Message, ChatIcon, UserIcon, Reaction, Attachment
-from .tasks import start_login_whatsapp
+from .tasks import start_login_whatsapp, get_chats_list
 from .serializers import (
     UserSerializer,
     ChatSerializer,
@@ -81,12 +81,27 @@ class WhatsappSessionViewSet(GenericViewSet):
     def list():
         return Response({'message': 'Everything is ok'})
 
+
     @action(detail=False, methods=["post"])
     def login(self, request):
         serializer = MessangerLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         task = start_login_whatsapp.delay(
+            phone_number=serializer.validated_data["phone_number"]
+        )
+
+        return Response(
+            {"task_id": task.id, "status": "queued"},
+            status=status.HTTP_202_ACCEPTED,
+        )
+    
+    @action(detail=False, methods=["post"])
+    def get_chats(self, request):
+        serializer = MessangerLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task = get_chats_list.delay(
             phone_number=serializer.validated_data["phone_number"]
         )
 

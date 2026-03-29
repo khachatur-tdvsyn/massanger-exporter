@@ -4,9 +4,10 @@ from selenium import webdriver
 from selenium.webdriver.common.webdriver import LocalWebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from .base import BaseMessangerFirefoxSession
+from .dataclasses import ChatData
 
 
 class WhatsappSession(BaseMessangerFirefoxSession):
@@ -18,9 +19,12 @@ class WhatsappSession(BaseMessangerFirefoxSession):
         super().__init__(self.session_id, proifles_path)
 
     def enter(self):
-        self.driver.get(self.url)
+        self.driver.get(self.url)            
 
     def set_login_status(self, timeout=30):
+        if not self.is_inside_messanger():
+            self.enter()
+        
         element = self._wait_for_element(timeout, By.XPATH, "/html/body/div[1]/div/div/div/div/div[3]/div/div[4]/header/header/div/div/h2/span/span/span/span")
         if element is not None:  
             self.is_logged_in = True
@@ -28,11 +32,7 @@ class WhatsappSession(BaseMessangerFirefoxSession):
     def is_inside_messanger(self):
         return self.driver.current_url.find(self.url) >= 0
 
-    def login(self, *args, **kwargs):
-        # Check if url of driver
-        if not self.is_inside_messanger():
-            self.enter()
-        
+    def login(self, *args, **kwargs):       
         self.set_login_status()
         if self.is_logged_in:
             return {
@@ -41,6 +41,9 @@ class WhatsappSession(BaseMessangerFirefoxSession):
             }
         else:
             return self._login_by_phone_number(self.phone_number)
+        
+    def get_user_info(self, *args, **kwargs):
+        return super().get_user_info(*args, **kwargs)
     
     def _login_by_phone_number(self, phone_number):
         # Wait for loading QR element
@@ -79,7 +82,26 @@ class WhatsappSession(BaseMessangerFirefoxSession):
         }
 
     def get_chats(self, *args, **kwargs):
-        return super().get_chats(*args, **kwargs)
+        self.set_login_status()
+        if(self.is_logged_in):
+            # Get chat rows
+            chats_list = self._wait_for_element(40, By.XPATH, '//*[@id="pane-side"]/div[1]/div/div')
+            chat_elements = chats_list.find_elements(By.CSS_SELECTOR, '.x10l6tqk.xh8yej3.x1g42fcv')
+            chats = []
+            for el in chat_elements:
+                try:
+                    name_el = el.find_element(By.CSS_SELECTOR, '.xuxw1ft.x6ikm8r.x10wlt62.xlyipyv.x78zum5')
+                    chats.append(
+                        ChatData(
+                            name=name_el.text
+                        )
+                    )
+                except NoSuchElementException as e:
+                    print('No element here', e)
+            
+            return chats
+        else:
+            return {'error': 'You aren\'t logged in'}
 
     def get_contacts(self, *args, **kwargs):
         return super().get_contacts(*args, **kwargs)

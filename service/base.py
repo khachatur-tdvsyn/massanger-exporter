@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import List
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -8,6 +9,8 @@ from selenium.webdriver.common.webdriver import LocalWebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
+
+from .dataclasses import UserData, ChatData, MessageData
 
 class BaseMessangerSession(ABC):
     url: str
@@ -19,17 +22,21 @@ class BaseMessangerSession(ABC):
     @abstractmethod
     def login(self, *args, **kwargs):
         ...
+    
+    @abstractmethod
+    def get_user_info(self, *args, **kwargs) -> UserData:
+        ...
 
     @abstractmethod
-    def get_chats(self, *args, **kwargs):
+    def get_chats(self, *args, **kwargs) -> List[ChatData]:
         ...
     
     @abstractmethod
-    def get_messages(self, *args, **kwargs):
+    def get_messages(self, *args, **kwargs) -> List[MessageData]:
         ...
     
     @abstractmethod
-    def get_contacts(self, *args, **kwargs):
+    def get_contacts(self, *args, **kwargs) -> List[UserData]:
         ...
     
     @abstractmethod
@@ -53,8 +60,9 @@ class BaseMessangerFirefoxSession(BaseMessangerSession, ABC):
         finally:
             return element
     
-    @classmethod
     def __enter__(self):
+        if self.driver is None:
+            self._init_webdriver()
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):
