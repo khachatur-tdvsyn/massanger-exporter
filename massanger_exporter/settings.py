@@ -83,6 +83,13 @@ DATABASES = {
     }
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'My API',
+    'SWAGGER_UI_SETTINGS': {
+        'docExpansion': 'none',  # 'list', 'full', or 'none'
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
