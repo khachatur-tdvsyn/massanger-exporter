@@ -39,7 +39,7 @@ class Chat(AssignableModel):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     creator = models.ForeignKey(User, related_name="chats", on_delete=models.CASCADE, null=True, blank=True)
-    admin_users = models.ManyToManyField(User, related_name="admin_users", null=True, blank=True)
+    admin_users = models.ManyToManyField(User, related_name="admin_users", blank=True)
 
 class Message(AssignableModel):
     chat = models.ForeignKey(Chat, related_name="messages", on_delete=models.CASCADE)
