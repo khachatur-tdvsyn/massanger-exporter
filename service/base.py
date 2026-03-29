@@ -41,6 +41,7 @@ class BaseMessangerFirefoxSession(BaseMessangerSession, ABC):
         super().__init__(session_id)
         self.profiles_path = Path(proifles_path)
         self.driver : LocalWebDriver = None
+        self._init_webdriver()
     
     def _wait_for_element(self, timeout, by, value) -> WebElement | None:
         element = None
@@ -52,8 +53,8 @@ class BaseMessangerFirefoxSession(BaseMessangerSession, ABC):
         finally:
             return element
     
+    @classmethod
     def __enter__(self):
-        self._init_webdriver()
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):

@@ -5,7 +5,7 @@ from django.conf import settings
 
 
 @shared_task
-def login_whatsapp(phone_number):
-    with WhatsappSession(None, settings.PROFILES_PATH, phone_number) as session:
-        result = session.login()
-        return result
+def start_login_whatsapp(phone_number):
+    session = WhatsappSession(None, settings.PROFILES_PATH, phone_number)
+    result = session.login()
+    return result

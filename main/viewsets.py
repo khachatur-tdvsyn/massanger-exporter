@@ -9,7 +9,7 @@ from celery.result import AsyncResult
 from django.contrib.auth import get_user_model
 
 from .models import User, Chat, Message, ChatIcon, UserIcon, Reaction, Attachment
-from .tasks import login_whatsapp
+from .tasks import start_login_whatsapp
 from .serializers import (
     UserSerializer,
     ChatSerializer,
@@ -86,7 +86,7 @@ class WhatsappSessionViewSet(GenericViewSet):
         serializer = MessangerLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        task = login_whatsapp.delay(
+        task = start_login_whatsapp.delay(
             phone_number=serializer.validated_data["phone_number"]
         )
 
