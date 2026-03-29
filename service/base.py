@@ -15,8 +15,8 @@ from .dataclasses import UserData, ChatData, MessageData
 class BaseMessangerSession(ABC):
     url: str
 
-    def __init__(self, session_id: str):
-        self.session_id = session_id
+    def __init__(self, user_id: str):
+        self.user_id = user_id
         self.is_logged_in = False
     
     @abstractmethod
@@ -44,8 +44,8 @@ class BaseMessangerSession(ABC):
         ...
 
 class BaseMessangerFirefoxSession(BaseMessangerSession, ABC):
-    def __init__(self, session_id, proifles_path):
-        super().__init__(session_id)
+    def __init__(self, user_id, proifles_path):
+        super().__init__(user_id)
         self.profiles_path = Path(proifles_path)
         self.driver : LocalWebDriver = None
         self._init_webdriver()
@@ -60,21 +60,13 @@ class BaseMessangerFirefoxSession(BaseMessangerSession, ABC):
         finally:
             return element
     
-    def __enter__(self):
-        if self.driver is None:
-            self._init_webdriver()
-        return self
-    
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.driver.quit()
-    
     def _init_webdriver(self):
         options = webdriver.FirefoxOptions()
 
         # options.add_argument("--headless")
         options.add_argument("--profile")
 
-        profile_path = self.profiles_path / str(self.session_id or 0)
+        profile_path = self.profiles_path / str(self.user_id or 0)
         if not profile_path.exists():
             profile_path.mkdir()
 
@@ -85,3 +77,6 @@ class BaseMessangerFirefoxSession(BaseMessangerSession, ABC):
         driver_service = webdriver.FirefoxService(executable_path=geckodriver_path)
 
         self.driver = webdriver.Firefox(options=options, service=driver_service)
+    
+    def quit(self):
+        self.driver.quit()

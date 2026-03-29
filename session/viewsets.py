@@ -12,6 +12,10 @@ from .serializers import (
     UserCreateSerializer,
     UserDetailSerializer
 )
+from .tasks import (open_session, close_session)
+
+from .selenium_manager import ThreadSafeSeleniumManager
+from hashlib import md5
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -44,7 +48,8 @@ class UserViewSet(viewsets.ModelViewSet):
         """Create a new user"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+
+        ThreadSafeSeleniumManager.create_session()
         
         return Response(
             {
@@ -108,18 +113,66 @@ class UserSessionViewSet(viewsets.ModelViewSet):
             return UserSession.objects.all()
         return UserSession.objects.filter(created_by=self.request.user)
     
+    @classmethod
+    def _generate_user_id(cls, user: User):
+        return md5(
+            f'{user.date_joined}{user.username}'.encode()
+        ).hexdigest() + str((user.id * 74) % 214)
+    
     def create(self, request, *args, **kwargs):
         request.data['created_by'] = self.request.user.id
+        request.data['is_open'] = True
+        
+        user_id = self._generate_user_id(self.request.user)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         self.perform_create(serializer)
+        data = UserSessionSerializer(serializer.instance).data
         
+        task = open_session.delay(
+            session_id=data['session_id'],
+            messanger_type=data['messanger_type'],
+            user_id=user_id
+        )
+
         return Response(
             {
-                "message": "User created successfully",
+                "message": "Session is creating",
+                "task_id": task.id,
+                "task_status": "queued",
                 "session": UserSessionSerializer(serializer.instance).data
             },
             status=status.HTTP_201_CREATED
         )
+    
+    def destroy(self, request, *args, **kwargs):
+        """Override destroy to close browser when session is deleted"""
+        session = self.get_object()
+        session_id = session.session_id
+
+        if not (self.request.user.is_superuser or session.created_by == self.request.user):
+            return Response(
+                {'error': 'Not enough permission to make actions'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
+        try:
+            # Close browser
+            task = close_session.delay(session_id=str(session_id))
+            # Delete model instance
+            self.perform_destroy(session)
+            
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {'error': 'Invalid request'},
+            status=status.HTTP_400_BAD_REQUEST
+        )

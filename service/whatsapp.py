@@ -13,10 +13,8 @@ from .dataclasses import ChatData
 class WhatsappSession(BaseMessangerFirefoxSession):
     url = 'https://web.whatsapp.com'
 
-    def __init__(self, session_id, proifles_path, phone_number):
-        self.phone_number = phone_number
-        self.session_id = 'W' + md5(self.phone_number.encode()).hexdigest()
-        super().__init__(self.session_id, proifles_path)
+    def __init__(self, user_id, proifles_path):
+        super().__init__(user_id, proifles_path)
 
     def enter(self):
         self.driver.get(self.url)            
@@ -32,15 +30,15 @@ class WhatsappSession(BaseMessangerFirefoxSession):
     def is_inside_messanger(self):
         return self.driver.current_url.find(self.url) >= 0
 
-    def login(self, *args, **kwargs):       
+    def login(self, phone_number, *args, **kwargs):       
         self.set_login_status()
         if self.is_logged_in:
             return {
                 'message': 'You are already logged in.',
-                'phone_number': self.phone_number
+                'phone_number': phone_number
             }
         else:
-            return self._login_by_phone_number(self.phone_number)
+            return self._login_by_phone_number(phone_number)
         
     def get_user_info(self, *args, **kwargs):
         return super().get_user_info(*args, **kwargs)
